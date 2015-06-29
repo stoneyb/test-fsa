@@ -3,27 +3,31 @@
 var _ = require('lodash');
 var http = require('http');
 
-// Get list of ips
 exports.index = function(req, res) {
   //var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
   var ip = '73.34.169.75';
   var lat = 0.0;
 
-  http.get("http://www.geoplugin.net/json.gp?ip="+ip, function(res) {
-        res.on('data', function (data) {
-            var geodata = JSON.parse(data);
-            console.log(geodata.geoplugin_request);
-            console.log(geodata.geoplugin_city);
-            console.log(geodata.geoplugin_regionName);
-            console.log(geodata.geoplugin_countryName);
-            console.log(geodata.geoplugin_latitude);
-            console.log(geodata.geoplugin_longitude);
-            lat = geodata.geoplugin_longitude;
-        });
-  }).on('error', function(e) {
-        console.log("Got error: " + e.message);
-  });
+  var options = {
+      host: 'www.geoplugin.net',
+      path: '/json.gp?ip='+ip,
+      port: 80,
+      method: 'GET'
+  };
 
-  res.json({ip: ip, lat: lat});
+  var request = http.request(options, function(response) {
+      var body = "";
+      response.on('data', function(data) {
+          body += data;
+      });
+      response.on('end', function() {
+          var geodata = JSON.parse(body);
+          res.json({ip: ip, geodata: geodata});
+      });
+  });
+  request.on('error', function(e) {
+      console.log('Problem with request: ' + e.message);
+  });
+  request.end();
 
 };
